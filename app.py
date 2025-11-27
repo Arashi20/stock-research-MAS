@@ -89,7 +89,7 @@ if check_password():
             st.rerun()
             
         st.markdown("---")
-        st.info("Built with LangGraph & Streamlit")
+        st.info("Built by Arash Mirshahi")
 
     # Main Input
     query = st.text_input(

@@ -132,11 +132,20 @@ Start with: # Stock Analysis Report: {company_name} ({ticker})
         response = llm.invoke(prompt)
 
             # Handle different response types (string or list)
-        if isinstance(response.content, list):
-            # If it's a list, join the items
-            report_content = '\n'.join(str(item) for item in response.content)
+        if isinstance(response.content, str):
+            report_content = response.content
+        elif isinstance(response.content, list):
+            # If it's a list, extracting the text from each block is necessary
+            parts = []
+            for item in response.content:
+                if isinstance(item, str):
+                    parts.append(item)
+                elif isinstance(item, dict) and 'text' in item:
+                    parts.append(item['text'])
+                else:
+                    parts.append(str(item))
+            report_content = "".join(parts)
         else:
-            # If it's a string, use directly
             report_content = str(response.content)
         
         
