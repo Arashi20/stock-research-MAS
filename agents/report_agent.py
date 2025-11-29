@@ -24,6 +24,7 @@ llm = ChatGoogleGenerativeAI(
     temperature=0.5
 )
 
+
 def create_price_chart(historical_data: Dict, ticker: str) -> str:
     """Create a simple price chart and return as base64 string."""
     try:

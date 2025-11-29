@@ -126,7 +126,7 @@ if check_password():
                             emoji = "😊" if sentiment > 0.3 else "😐" if sentiment > -0.3 else "😟"
                             st.metric("Sentiment Score", f"{sentiment:.2f} {emoji}")
 
-                        st.markdown("### 📄 Comprehensive Report")
+                        
                         st.markdown(result['report'])
                         
                         # Download button
