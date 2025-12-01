@@ -102,30 +102,30 @@ if check_password():
         if not query:
             st.warning("Please enter a query first.")
         else:
-            with st.status("🤖 Agents are researching...", expanded=True) as status:
-                try:
+            status_container = st.spinner("Agents are researching...")
+            try:
+                with status_container:
                     # Run the actual analysis
                     result = run_stock_analysis(query)
                     
-                    if result.get('errors') and result['ticker'] == 'UNKNOWN':
-                        st.error("Analysis failed. Please try a specific company name or ticker.")
-                        with st.expander("See error details"):
-                            st.write(result['errors'])
-                    else:
-                        # Success Display
-                        col1, col2, col3 = st.columns(3)
+                if result.get('errors') and result['ticker'] == 'UNKNOWN':
+                    st.error("Analysis failed. Please try a specific company name or ticker.")
+                    with st.expander("See error details"):
+                        st.write(result['errors'])
+                else:
+                    # Success Display
+                    col1, col2, col3 = st.columns(3)
                         
-                        with col1:
-                            st.metric("Company", f"{result['company_name']} ({result['ticker']})")
+                    with col1:
+                        st.metric("Company", f"{result['company_name']} ({result['ticker']})")
                         
-                        with col2:
-                            st.metric("Recommendation", result['recommendation'])
+                    with col2:
+                        st.metric("Recommendation", result['recommendation'])
                             
-                        with col3:
-                            sentiment = result.get('sentiment_score', 0)
-                            emoji = "😊" if sentiment > 0.3 else "😐" if sentiment > -0.3 else "😟"
-                            st.metric("Sentiment Score", f"{sentiment:.2f} {emoji}")
-
+                    with col3:
+                        sentiment = result.get('sentiment_score', 0)
+                        emoji = "😊" if sentiment > 0.3 else "😐" if sentiment > -0.3 else "😟"
+                        st.metric("Sentiment Score", f"{sentiment:.2f} {emoji}")
                         
                         st.markdown(result['report'])
                         
@@ -136,6 +136,13 @@ if check_password():
                             file_name=f"{result['ticker']}_analysis.md",
                             mime="text/markdown"
                         )
-                        
-                except Exception as e:
+            except Exception as e:
                     st.error(f"An unexpected error occurred: {str(e)}")
+
+
+            finally:
+                # This ensures the spinner STOPS even if the script is killed
+                pass
+                
+                        
+                
