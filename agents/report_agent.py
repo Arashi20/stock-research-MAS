@@ -98,6 +98,11 @@ Valuation:
 - PEG Ratio: {financial_data.get('peg_ratio', 'N/A')} (Low < 1.0 suggests undervalued)
 - Price-to-Book: {financial_data.get('price_to_book', 'N/A')}
 
+Cash Flow & Dilution (CRITICAL):
+- Avg Free Cash Flow (3y): ${financial_data.get('avg_fcf_3y', 'N/A')}
+- Share Dilution (3y): {financial_data.get('share_dilution_3y', 'N/A')}
+  (Note: Positive dilution means shareholders are owning less of the company over time)
+
 Management Effectiveness & Profitability:
 - ROE: {financial_data.get('return_on_equity', 'N/A')}
 - ROA: {financial_data.get('return_on_assets', 'N/A')}
@@ -115,13 +120,16 @@ Market Data:
 - 52-Week Low: ${financial_data.get('fifty_two_week_low', 'N/A')}
 - Analyst Recommendation: {financial_data.get('analyst_recommendation', 'N/A').upper()}
 """
-
+    # Pylance type errors are fine here: The agents set the data.
     sentiment_summary = f"""
-    # ... keep existing sentiment summary ...
-    """
+Sentiment Score: {sentiment_data.get('sentiment_score', 0):.2f} (-1 = very negative, +1 = very positive)
+Articles Analyzed: {sentiment_data.get('article_count', 0)}
+Summary: {sentiment_data.get('summary', 'No sentiment data available')}
+"""
     
-    # UPDATED PROMPT FOR FUNDAMENTAL FOCUS
-    prompt = f"""You are a Fundamental Investment Analyst creating a deep-dive stock report.
+
+    # UPDATED PROMPT - MORE CRITICAL
+    prompt = f"""You are a skeptical Fundamental Investment Analyst.
     
 COMPANY: {company_name} ({ticker})
 
@@ -131,17 +139,22 @@ FINANCIAL DATA:
 SENTIMENT ANALYSIS:
 {sentiment_summary}
 
-Generate a comprehensive fundamental investment report with the following structure:
+Generate a brutal, honest investment report.
 
-1. **Executive Summary**: Clear BUY/HOLD/SELL recommendation based on valuation and quality.
-2. **Valuation Analysis**: Is the stock cheap or expensive? (Use P/E, PEG, P/B).
-3. **Management & Profitability**: Analyze management efficiency. Look for high ROE/ROA/Margins (consistently >10% indicates strong management).
-4. **Financial Health**: Is the company safe? (Check Debt/Equity and Liquidity).
-5. **Market Sentiment**: Summary of recent news and mood.
-6. **Risk Assessment**: What could go wrong?
-7. **Conclusion**: Final verdict.
+CRITICAL INSTRUCTIONS:
+1. **Cash is King**: If "Avg Free Cash Flow" is negative, the company is burning cash. This is a major risk.
+2. **Watch Dilution**: If "Share Dilution" is positive (e.g., >5%), the company is funding itself by selling shares, diluting existing holders. Treat this negatively.
+3. **Ignore Analysts**: If the company burns cash and dilutes shareholders, you MUST be skeptical of "BUY" ratings from external analysts.
+4. **Valuation**: Is the P/E justifiable given the cash flow?
 
-Be objective, professional, and data-driven.
+Report Structure:
+1. **Executive Summary**: BUY/HOLD/SELL. (Be brave: assign SELL if cash burn + dilution are high, even if sentiment is good).
+2. **Cash Flow & Dilution Analysis**: deeply analyze the 3-year FCF and share count trends.
+3. **Valuation**: Cheap or Value Trap?
+4. **Management Efficiency**: ROE/ROA.
+5. **Risk Assessment**: Bankruptcy risk? Dilution risk?
+6. **Conclusion**: Final verdict.
+
 Start with: # Fundamental Analysis Report: {company_name} ({ticker})
 """
     
