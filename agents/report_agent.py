@@ -5,6 +5,7 @@ import logging
 import os
 import matplotlib.pyplot as plt
 import pandas as pd
+import re
 from io import BytesIO
 import base64
 from typing import Dict, Any
@@ -186,13 +187,22 @@ Start with: # Fundamental Analysis Report: {company_name} ({ticker})
         #     ticker)
         chart_base64 = ""  # Disable charts for now
 
+        # --- NEW EXTRACTION LOGIC ---
+        # Look for "VERDICT: BUY" or "VERDICT: SELL" at the end
+        match = re.search(r'VERDICT:\s*(BUY|SELL|HOLD)', report_content, re.IGNORECASE)
 
-        # Extract recommendation
-        recommendation = "HOLD"  # Default
-        if "BUY" in report_content.upper() and "DON'T BUY" not in report_content.upper():
-            recommendation = "BUY"
-        elif "SELL" in report_content.upper():
-            recommendation = "SELL"
+
+        if match:
+            recommendation = match.group(1).upper()
+        else:
+            # Fallback if LLM forgets the format
+            logger.warning("⚠️ LLM did not output VERDICT format. Falling back to keyword search.")
+            if "SELL" in report_content.upper()[-500:]: # Only look at the end
+                recommendation = "SELL"
+            elif "BUY" in report_content.upper()[-500:]:
+                recommendation = "BUY"
+            else:
+                recommendation = "HOLD"
         
         logger.info(f"✅ Report Generator Agent: Report created")
         logger.info(f"   Recommendation: {recommendation}")
