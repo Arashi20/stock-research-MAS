@@ -147,8 +147,10 @@ VERDICT: [BUY/HOLD/SELL]
         else:
             report_content = str(response.content)
 
-        # Fix for Streamlit parsing error with dollar signs
-        report_content = report_content.replace("$", "\\$")
+        # --- FIX FOR STREAMLIT LATEX RENDERING ---
+        # Replace $ with HTML entity &dollar; to prevent KaTeX parsing entirely
+        # This fixes issues with negative numbers like -$14.50 triggering math mode
+        report_content = report_content.replace("$", "&dollar;")
         
 
         # --- NEW EXTRACTION LOGIC ---
