@@ -90,25 +90,39 @@ Errors: {', '.join(state.get('errors', ['Unknown error']))}
     
     # Prepare data for LLM
     financial_summary = f"""
-Current Price: ${financial_data.get('current_price', 'N/A')}
-Market Cap: ${financial_data.get('market_cap', 'N/A'):,} if isinstance(financial_data.get('market_cap'), (int, float)) else 'N/A'
-P/E Ratio: {financial_data.get('pe_ratio', 'N/A')}
-EPS: ${financial_data.get('eps', 'N/A')}
-Profit Margin: {financial_data.get('profit_margin', 'N/A')}
-52-Week High: ${financial_data.get('fifty_two_week_high', 'N/A')}
-52-Week Low: ${financial_data.get('fifty_two_week_low', 'N/A')}
-Analyst Recommendation: {financial_data.get('analyst_recommendation', 'N/A').upper()}
-"""
-    # Pylance type errors are fine here: The agents set the data.
-    sentiment_summary = f"""
-Sentiment Score: {sentiment_data.get('sentiment_score', 0):.2f} (-1 = very negative, +1 = very positive)
-Articles Analyzed: {sentiment_data.get('article_count', 0)}
-Summary: {sentiment_data.get('summary', 'No sentiment data available')}
-"""
-    
-    # Create prompt for LLM to generate report
-    prompt = f"""You are a financial analyst creating a stock analysis report.
+Valuation:
+- Current Price: ${financial_data.get('current_price', 'N/A')}
+- Market Cap: ${financial_data.get('market_cap', 'N/A'):,} if isinstance(financial_data.get('market_cap'), (int, float)) else 'N/A'
+- Trailing P/E: {financial_data.get('pe_ratio', 'N/A')}
+- Forward P/E: {financial_data.get('forward_pe', 'N/A')}
+- PEG Ratio: {financial_data.get('peg_ratio', 'N/A')} (Low < 1.0 suggests undervalued)
+- Price-to-Book: {financial_data.get('price_to_book', 'N/A')}
 
+Management Effectiveness & Profitability:
+- ROE: {financial_data.get('return_on_equity', 'N/A')}
+- ROA: {financial_data.get('return_on_assets', 'N/A')}
+- Profit Margin: {financial_data.get('profit_margin', 'N/A')}
+- Operating Margin: {financial_data.get('operating_margins', 'N/A')}
+
+Financial Health:
+- Debt-to-Equity: {financial_data.get('debt_to_equity', 'N/A')}
+- Current Ratio: {financial_data.get('current_ratio', 'N/A')}
+- Free Cash Flow: ${financial_data.get('free_cash_flow', 'N/A')}
+- Dividend Yield: {financial_data.get('dividend_yield', 'N/A')}
+
+Market Data:
+- 52-Week High: ${financial_data.get('fifty_two_week_high', 'N/A')}
+- 52-Week Low: ${financial_data.get('fifty_two_week_low', 'N/A')}
+- Analyst Recommendation: {financial_data.get('analyst_recommendation', 'N/A').upper()}
+"""
+
+    sentiment_summary = f"""
+    # ... keep existing sentiment summary ...
+    """
+    
+    # UPDATED PROMPT FOR FUNDAMENTAL FOCUS
+    prompt = f"""You are a Fundamental Investment Analyst creating a deep-dive stock report.
+    
 COMPANY: {company_name} ({ticker})
 
 FINANCIAL DATA:
@@ -117,15 +131,18 @@ FINANCIAL DATA:
 SENTIMENT ANALYSIS:
 {sentiment_summary}
 
-Generate a comprehensive investment report with:
-1. Executive Summary with clear recommendation (BUY/HOLD/SELL)
-2. Financial Analysis section
-3. Market Sentiment section
-4. Risk Assessment
-5. Conclusion
+Generate a comprehensive fundamental investment report with the following structure:
 
-Be objective and data-driven. Format in clear markdown.
-Start with: # Stock Analysis Report: {company_name} ({ticker})
+1. **Executive Summary**: Clear BUY/HOLD/SELL recommendation based on valuation and quality.
+2. **Valuation Analysis**: Is the stock cheap or expensive? (Use P/E, PEG, P/B).
+3. **Management & Profitability**: Analyze management efficiency. Look for high ROE/ROA/Margins (consistently >10% indicates strong management).
+4. **Financial Health**: Is the company safe? (Check Debt/Equity and Liquidity).
+5. **Market Sentiment**: Summary of recent news and mood.
+6. **Risk Assessment**: What could go wrong?
+7. **Conclusion**: Final verdict.
+
+Be objective, professional, and data-driven.
+Start with: # Fundamental Analysis Report: {company_name} ({ticker})
 """
     
     try:
