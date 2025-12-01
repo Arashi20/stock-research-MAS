@@ -102,7 +102,7 @@ if check_password():
         if not query:
             st.warning("Please enter a query first.")
         else:
-            with st.spinner("Agents are researching... this may take a minute..."):
+            with st.status("🤖 Agents are researching...", expanded=True) as status:
                 try:
                     # Run the actual analysis
                     result = run_stock_analysis(query)
