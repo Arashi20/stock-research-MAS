@@ -24,6 +24,8 @@ def financial_data_agent(state: AgentState) -> AgentState:
         logger.info(f"✅ Financial Data Agent: Successfully retrieved data for {ticker}")
         logger.info(f"   Current Price: ${financial_data.get('current_price', 'N/A')}")
         logger.info(f"   P/E Ratio: {financial_data.get('pe_ratio', 'N/A')}")
+        logger.info(f"   PEG Ratio: {financial_data.get('peg_ratio', 'N/A')}")
+        logger.info(f"   ROE: {financial_data.get('return_on_equity', 'N/A')}")
     else:
         logger.error(f"❌ Financial Data Agent: Failed to fetch data - {financial_data.get('error')}")
         state['errors'].append(f"Financial data error: {financial_data.get('error')}")
