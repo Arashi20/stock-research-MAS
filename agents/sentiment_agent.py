@@ -72,7 +72,7 @@ SUMMARY: [your summary here]
         response = llm.invoke(prompt)
         response_text = str(response.content) 
 
-        sentiment_score
+        sentiment_score = 0.0
         
         # Extract sentiment score using regex
         score_match = re.search(r'(?:SCORE|Score|score)\s*[:\-]?\s*([-\+]?\d*\.?\d+)', response_text)
