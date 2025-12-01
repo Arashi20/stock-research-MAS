@@ -25,38 +25,6 @@ llm = ChatGoogleGenerativeAI(
     temperature=0.5
 )
 
-
-def create_price_chart(historical_data: Dict, ticker: str) -> str:
-    """Create a simple price chart and return as base64 string."""
-    try:
-        if not historical_data or 'Close' not in historical_data:
-            return ""
-        
-        # Convert to DataFrame
-        df = pd.DataFrame(historical_data)
-        df.index = pd.to_datetime(df.index, unit='ms') if df.index.dtype == 'int64' else df.index
-        
-        # Create plot
-        plt.figure(figsize=(10, 6))
-        plt.plot(df.index, df['Close'], linewidth=2, color='#1f77b4')
-        plt.title(f'{ticker} Stock Price - Last 12 Months', fontsize=14, fontweight='bold')
-        plt.xlabel('Date')
-        plt.ylabel('Price ($)')
-        plt.grid(True, alpha=0.3)
-        plt.tight_layout()
-        
-        # Save to base64
-        buffer = BytesIO()
-        plt.savefig(buffer, format='png', dpi=100, bbox_inches='tight')
-        buffer.seek(0)
-        image_base64 = base64.b64encode(buffer.read()).decode()
-        plt.close()
-        
-        return f"data:image/png;base64,{image_base64}"
-    except Exception as e:
-        logger.error(f"Chart creation failed: {e}")
-        return ""
-
 def report_generator_agent(state: AgentState) -> AgentState:
     """
     Agent that generates the final report.
@@ -83,11 +51,6 @@ Errors: {', '.join(state.get('errors', ['Unknown error']))}
         state['recommendation'] = "UNAVAILABLE"
         return state
     
-    # Generate price chart
-    chart_base64 = create_price_chart(
-        financial_data.get('historical_data', {}),
-        ticker
-    )
     
     # Prepare data for LLM
     financial_summary = f"""
@@ -157,6 +120,10 @@ Report Structure:
 6. **Conclusion**: Final verdict.
 
 Start with: # Fundamental Analysis Report: {company_name} ({ticker})
+
+IMPORTANT:
+At the very end of your response, on a new line, you MUST print the final recommendation in this exact format:
+VERDICT: [BUY/HOLD/SELL]
 """
     
     try:
@@ -179,19 +146,16 @@ Start with: # Fundamental Analysis Report: {company_name} ({ticker})
             report_content = "".join(parts)
         else:
             report_content = str(response.content)
+
+        # Fix for Streamlit parsing error with dollar signs
+        report_content = report_content.replace("$", "\\$")
         
-        
-        # Generate price chart
-        # chart_base64 = create_price_chart(
-        #     financial_data.get('historical_data', {}),
-        #     ticker)
-        chart_base64 = ""  # Disable charts for now
 
         # --- NEW EXTRACTION LOGIC ---
         # Look for "VERDICT: BUY" or "VERDICT: SELL" at the end
         match = re.search(r'VERDICT:\s*(BUY|SELL|HOLD)', report_content, re.IGNORECASE)
 
-        
+
 
         if match:
             recommendation = match.group(1).upper()
