@@ -191,6 +191,7 @@ Start with: # Fundamental Analysis Report: {company_name} ({ticker})
         # Look for "VERDICT: BUY" or "VERDICT: SELL" at the end
         match = re.search(r'VERDICT:\s*(BUY|SELL|HOLD)', report_content, re.IGNORECASE)
 
+        
 
         if match:
             recommendation = match.group(1).upper()

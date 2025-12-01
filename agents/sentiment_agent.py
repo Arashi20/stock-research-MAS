@@ -4,6 +4,7 @@
 
 import logging
 import os
+import re
 from typing import Dict, Any
 from agents.state import AgentState
 from tools.news_tool import fetch_recent_news
@@ -70,21 +71,29 @@ SUMMARY: [your summary here]
         # Get LLM analysis
         response = llm.invoke(prompt)
         response_text = str(response.content) 
+
+        sentiment_score
         
-        # Parse response
-        score_line = [line for line in response_text.split('\n') if line.startswith('SCORE:')]
-        summary_line = [line for line in response_text.split('\n') if line.startswith('SUMMARY:')]
-        
-        sentiment_score = 0.0
-        if score_line:
+        # Extract sentiment score using regex
+        score_match = re.search(r'(?:SCORE|Score|score)\s*[:\-]?\s*([-\+]?\d*\.?\d+)', response_text)
+        if score_match:
             try:
-                sentiment_score = float(score_line[0].replace('SCORE:', '').strip())
+                sentiment_score = float(score_match.group(1))
                 # Clamp between -1 and 1
                 sentiment_score = max(-1.0, min(1.0, sentiment_score))
-            except:
+            except ValueError:
+                logger.warning(f"⚠️ Could not convert sentiment score to float: {score_match.group(1)}")
                 sentiment_score = 0.0
-        
-        summary = summary_line[0].replace('SUMMARY:', '').strip() if summary_line else "Analysis completed."
+        else:
+            logger.warning("⚠️ Could not find 'SCORE:' pattern in LLM response")
+
+        # Extract summary (look for SUMMARY: marker, fallback to full text if not found)
+        summary_match = re.search(r'(?:SUMMARY|Summary|summary)\s*[:\-]?\s*(.*)', response_text, re.DOTALL)
+        if summary_match:
+            summary = summary_match.group(1).strip()
+        else:
+            # If no SUMMARY tag, try to clean up the text by removing the score line
+            summary = re.sub(r'(?:SCORE|Score|score)\s*[:\-]?\s*[-\+]?\d*\.?\d+', '', response_text).strip()
         
         logger.info(f"✅ Sentiment Analysis Agent: Score = {sentiment_score:.2f}")
         logger.info(f"   Analyzed {len(news_data['articles'])} articles")
