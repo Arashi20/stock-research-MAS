@@ -5,6 +5,7 @@
 import logging
 import os
 import re
+import json
 from typing import Dict, Any
 from agents.state import AgentState
 from tools.news_tool import fetch_recent_news
@@ -62,38 +63,49 @@ Provide:
 1. A sentiment score from -1.0 (very negative) to +1.0 (very positive)
 2. A brief summary (2-3 sentences) of the overall sentiment and key themes
 
-Format your response EXACTLY as:
-SCORE: [number between -1.0 and 1.0]
-SUMMARY: [your summary here]
+CRITICAL: You must output the result ONLY as a valid JSON object. Do not include any other text.
+Required JSON format:
+{{
+    "score": 0.0,
+    "summary": "Your summary here"
+}}
 """
     
     try:
         # Get LLM analysis
         response = llm.invoke(prompt)
         response_text = str(response.content) 
-
-        sentiment_score = 0.0
         
-        # Extract sentiment score using regex
-        score_match = re.search(r'(?:SCORE|Score|score)\s*[:\-]?\s*([-\+]?\d*\.?\d+)', response_text)
-        if score_match:
-            try:
-                sentiment_score = float(score_match.group(1))
-                # Clamp between -1 and 1
-                sentiment_score = max(-1.0, min(1.0, sentiment_score))
-            except ValueError:
-                logger.warning(f"⚠️ Could not convert sentiment score to float: {score_match.group(1)}")
-                sentiment_score = 0.0
-        else:
-            logger.warning("⚠️ Could not find 'SCORE:' pattern in LLM response")
-
-        # Extract summary (look for SUMMARY: marker, fallback to full text if not found)
-        summary_match = re.search(r'(?:SUMMARY|Summary|summary)\s*[:\-]?\s*(.*)', response_text, re.DOTALL)
-        if summary_match:
-            summary = summary_match.group(1).strip()
-        else:
-            # If no SUMMARY tag, try to clean up the text by removing the score line
-            summary = re.sub(r'(?:SCORE|Score|score)\s*[:\-]?\s*[-\+]?\d*\.?\d+', '', response_text).strip()
+        # --- ROBUST JSON PARSING ---
+        # 1. Clean up markdown code blocks if present (e.g. ```json ... ```)
+        if "```" in response_text:
+            # Remove ```json and ``` 
+            response_text = re.sub(r'```json|```', '', response_text).strip()
+        
+        try:
+            data = json.loads(response_text)
+            
+            # Extract and validate score
+            sentiment_score = float(data.get('score', 0.0))
+            sentiment_score = max(-1.0, min(1.0, sentiment_score)) # Clamp
+            
+            # Extract summary
+            summary = data.get('summary', "No summary provided.")
+            
+        except json.JSONDecodeError as e:
+            logger.warning(f"⚠️ JSON Parsing failed. Falling back to regex. Error: {e}")
+            logger.warning(f"Raw response: {response_text}")
+            
+            # --- FALLBACK REGEX (Just in case JSON fails completely) ---
+            # Look for any float number between -1.0 and 1.0
+            score_match = re.search(r'([-+]?\d*\.?\d+)', response_text)
+            sentiment_score = 0.0
+            if score_match:
+                val = float(score_match.group(1))
+                if -1.0 <= val <= 1.0:
+                    sentiment_score = val
+            
+            summary = response_text[:200] + "..." # Use raw text as summary if parsing fails
         
         logger.info(f"✅ Sentiment Analysis Agent: Score = {sentiment_score:.2f}")
         logger.info(f"   Analyzed {len(news_data['articles'])} articles")
