@@ -48,12 +48,15 @@ Rules:
 3. If multiple tickers mentioned, return the first/main one
 4. If no ticker can be identified, return "UNKNOWN"
 5. Do NOT include any explanation, just the ticker
+6. IMPORTANT: If the user provides an international ticker with a dot (e.g. "RHM.DE", "7203.T"), PRESERVE the dot and the suffix.
+
 
 Examples:
 - "Should I invest in TSLA?" → TSLA
 - "analyze apple stock" → AAPL
 - "what about tesla" → TSLA
 - "compare AAPL and MSFT" → AAPL
+- "what about RHM.DE" → RHM.DE 
 - "tell me about the stock market" → UNKNOWN
 
 Ticker:"""
