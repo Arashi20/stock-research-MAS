@@ -29,13 +29,20 @@ llm = ChatGoogleGenerativeAI(
 def format_currency(value: Any, currency_code: str = "USD") -> str:
     """
     Format a value with currency code to avoid ambiguity in LLM prompts.
+    Handles int, float, str ("100"), and None.
     Examples: 100 -> "USD 100.00", -100 -> "-USD 100.00"
     """
     try:
+        # Try to convert string numbers "1000" to float 1000.0
+        if isinstance(value, str) and value.replace('.', '', 1).isdigit():
+             value = float(value)
+
         if isinstance(value, (int, float)):
             if value < 0:
                 return f"-{currency_code} {abs(value):,.2f}"
             return f"{currency_code} {value:,.2f}"
+        
+        # If it's not a number, return as string (without formatting syntax)
         return str(value) if value else "N/A"
     except:
         return "N/A"
@@ -80,15 +87,14 @@ Errors: {', '.join(state.get('errors', ['Unknown error']))}
     # Prepare data for LLM
     financial_summary = f"""
 Valuation:
-- Current Price: ${financial_data.get('current_price', 'N/A')}
-- Market Cap: ${financial_data.get('market_cap', 'N/A'):,} if isinstance(financial_data.get('market_cap'), (int, float)) else 'N/A'
-- Trailing P/E: {financial_data.get('pe_ratio', 'N/A')}
+- Current Price: {current_price_str}
+- Market Cap: {format_currency(financial_data.get('market_cap'), currency)}
 - Forward P/E: {financial_data.get('forward_pe', 'N/A')}
 - PEG Ratio: {financial_data.get('peg_ratio', 'N/A')} (Low < 1.0 suggests undervalued)
 - Price-to-Book: {financial_data.get('price_to_book', 'N/A')}
 
 Cash Flow & Dilution (CRITICAL):
-- Avg Free Cash Flow (3y): ${financial_data.get('avg_fcf_3y', 'N/A')}
+- Avg Free Cash Flow (3y): {avg_fcf_str}
 - Share Dilution (3y): {financial_data.get('share_dilution_3y', 'N/A')}
   (Note: Positive dilution means shareholders are owning less of the company over time)
 
@@ -101,12 +107,12 @@ Management Effectiveness & Profitability:
 Financial Health:
 - Debt-to-Equity: {financial_data.get('debt_to_equity', 'N/A')}
 - Current Ratio: {financial_data.get('current_ratio', 'N/A')}
-- Free Cash Flow: ${financial_data.get('free_cash_flow', 'N/A')}
+- Free Cash Flow: {fcf_str}
 - Dividend Yield: {financial_data.get('dividend_yield', 'N/A')}
 
 Market Data:
-- 52-Week High: ${financial_data.get('fifty_two_week_high', 'N/A')}
-- 52-Week Low: ${financial_data.get('fifty_two_week_low', 'N/A')}
+- 52-Week High: {format_currency(financial_data.get('fifty_two_week_high'), currency)}
+- 52-Week Low: {format_currency(financial_data.get('fifty_two_week_low'), currency)}
 - Analyst Recommendation: {financial_data.get('analyst_recommendation', 'N/A').upper()}
 """
     # Pylance type errors are fine here: The agents set the data.
