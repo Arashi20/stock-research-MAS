@@ -188,10 +188,11 @@ VERDICT: [BUY/HOLD/SELL]
         else:
             report_content = str(response.content)
 
-        # --- FIX FOR STREAMLIT LATEX RENDERING ---
-        # Replace $ with HTML entity &dollar; to prevent KaTeX parsing entirely
-        # This fixes issues with negative numbers like -$14.50 triggering math mode
-        report_content = report_content.replace("$", "\\$")
+        # --- FINAL FIX FOR STREAMLIT LATEX RENDERING ---
+        # SOLUTION: Replace standard ASCII '$' with the Unicode "Fullwidth Dollar Sign" (U+FF04).
+        # It looks identical to a user, but the Markdown parser treats it as a normal letter, 
+        # so it will NEVER trigger math mode logic.
+        report_content = report_content.replace("$", "＄")
         
 
         # --- NEW EXTRACTION LOGIC ---
