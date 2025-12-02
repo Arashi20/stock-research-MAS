@@ -52,6 +52,7 @@ def fetch_stock_data(ticker: str) -> Dict[str, Any]:
         data = {
             'ticker': ticker,
             'company_name': info.get('longName', ticker),
+            'currency': info.get('currency', 'USD'), 
             'current_price': info.get('currentPrice', info.get('regularMarketPrice', 'N/A')),
             'market_cap': info.get('marketCap', 'N/A'),
             
