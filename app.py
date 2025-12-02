@@ -79,7 +79,7 @@ if check_password():
         This AI Agent team researches stocks using:
         - **Financial Data Analysis**
         - **News Sentiment Analysis**
-        - **Analyst Ratings**
+        - **Technical Analysis**
         """)
         st.markdown("---")
         

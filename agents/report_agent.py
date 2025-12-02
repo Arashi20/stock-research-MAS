@@ -37,6 +37,7 @@ def report_generator_agent(state: AgentState) -> AgentState:
     
     financial_data = state.get('financial_data', {})
     sentiment_data = state.get('sentiment_data', {})
+    technical_data = state.get('technical_data', {})
     
     # Check if we have the necessary data
     if not financial_data or not financial_data.get('success'):
@@ -90,6 +91,15 @@ Sentiment Score: {sentiment_data.get('sentiment_score', 0):.2f} (-1 = very negat
 Articles Analyzed: {sentiment_data.get('article_count', 0)}
 Summary: {sentiment_data.get('summary', 'No sentiment data available')}
 """
+        # Technical Summary
+    technical_summary = f"""
+Trend: {technical_data.get('trend', 'N/A')}
+SMA_50: ${technical_data.get('sma_50', 'N/A'):.2f}
+SMA_200: ${technical_data.get('sma_200', 'N/A'):.2f}
+RSI (14): {technical_data.get('rsi', 'N/A'):.2f} (Overbought > 70, Oversold < 30)
+MACD: {technical_data.get('macd', 'N/A'):.2f}
+Stochastic %K: {technical_data.get('stoch_k', 'N/A'):.2f}
+"""
     
 
     # UPDATED PROMPT - MORE CRITICAL
@@ -103,6 +113,9 @@ FINANCIAL DATA:
 SENTIMENT ANALYSIS:
 {sentiment_summary}
 
+TECHNICAL ANALYSIS:
+{technical_summary}
+
 Generate a brutal, honest investment report.
 
 CRITICAL INSTRUCTIONS:
@@ -110,6 +123,7 @@ CRITICAL INSTRUCTIONS:
 2. **Watch Dilution**: If "Share Dilution" is positive (e.g., >5%), the company is funding itself by selling shares, diluting existing holders. Treat this negatively.
 3. **Ignore Analysts**: If the company burns cash and dilutes shareholders, you MUST be skeptical of "BUY" ratings from external analysts.
 4. **Valuation**: Is the P/E justifiable given the cash flow?
+5. **Use Technicals for Timing**: Use RSI/Stochastics to recommend *when* to buy/sell (e.g., "Good company, but wait for RSI to cool off").
 
 Report Structure:
 1. **Executive Summary**: BUY/HOLD/SELL. (Be brave: assign SELL if cash burn + dilution are high, even if sentiment is good).
@@ -117,7 +131,8 @@ Report Structure:
 3. **Valuation**: Cheap or Value Trap?
 4. **Management Efficiency**: ROE/ROA.
 5. **Risk Assessment**: Bankruptcy risk? Dilution risk?
-6. **Conclusion**: Final verdict.
+6. **Technical Analysis**: Use RSI, Stochastics, and other indicators to assess timing and momentum.
+7. **Conclusion**: Final verdict.
 
 Start with: # Fundamental Analysis Report: {company_name} ({ticker})
 
