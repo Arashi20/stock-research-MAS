@@ -188,10 +188,15 @@ VERDICT: [BUY/HOLD/SELL]
         else:
             report_content = str(response.content)
 
-        # --- FINAL FIX FOR STREAMLIT LATEX RENDERING ---
-        # SOLUTION: Replace standard ASCII '$' with the Unicode "Fullwidth Dollar Sign" (U+FF04).
-        # It looks identical to a user, but the Markdown parser treats it as a normal letter, 
-        # so it will NEVER trigger math mode logic.
+        # --- SANITIZATION STEP ---
+        # 1. Remove backslashes preceding dollar signs (e.g., \$ -> $)
+        report_content = report_content.replace("\\$", "$")
+        
+        # 2. Strip LaTeX math delimiters wrapping currency/numbers (e.g., $-100$ -> -100 or $-$100$ -> -$100)
+        # Regex explanation: Find $...$ where content is digits/commas/dots/minus/dollar, and keep only the content.
+        report_content = re.sub(r'\$(-?\$?[\d,.]+\w*)\$', r'\1', report_content)
+
+        # 3. Final Visual Fix: Replace ASCII '$' with Unicode Fullwidth Dollar Sign (U+FF04)
         report_content = report_content.replace("$", "＄")
         
 
