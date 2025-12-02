@@ -91,14 +91,16 @@ Sentiment Score: {sentiment_data.get('sentiment_score', 0):.2f} (-1 = very negat
 Articles Analyzed: {sentiment_data.get('article_count', 0)}
 Summary: {sentiment_data.get('summary', 'No sentiment data available')}
 """
-        # Technical Summary
+
     technical_summary = f"""
-Trend: {technical_data.get('trend', 'N/A')}
-SMA_50: ${technical_data.get('sma_50', 'N/A'):.2f}
-SMA_200: ${technical_data.get('sma_200', 'N/A'):.2f}
-RSI (14): {technical_data.get('rsi', 'N/A'):.2f} (Overbought > 70, Oversold < 30)
-MACD: {technical_data.get('macd', 'N/A'):.2f}
-Stochastic %K: {technical_data.get('stoch_k', 'N/A'):.2f}
+Trend (Weekly): {technical_data.get('trend', 'N/A')}
+RSI (14-Week): {technical_data.get('rsi', 'N/A'):.2f}
+MACD (Weekly): {technical_data.get('macd', 'N/A'):.2f}
+
+Stochastic Oscillator (Weekly 14,1,3):
+- %K Line: {technical_data.get('stoch_k', 'N/A'):.2f} (Green Line)
+- %D Line: {technical_data.get('stoch_d', 'N/A'):.2f} (Red Line)
+- Signal: {technical_data.get('stoch_signal', 'N/A')}
 """
     
 
