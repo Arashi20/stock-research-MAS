@@ -19,6 +19,9 @@ class AgentState(TypedDict):
     # Sentiment Analysis Agent output
     sentiment_data: Optional[Dict[str, Any]]
     sentiment_score: Optional[float]
+
+    # Technical Analysis Agent output
+    technical_data: Optional[Dict[str, Any]]
     
     # Report Generator Agent output
     final_report: Optional[str]

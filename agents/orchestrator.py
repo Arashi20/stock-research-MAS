@@ -11,6 +11,7 @@ from agents.state import AgentState
 from agents.financial_agent import financial_data_agent
 from agents.sentiment_agent import sentiment_analysis_agent
 from agents.report_agent import report_generator_agent
+from agents.technical_agent import technical_analysis_agent
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -139,6 +140,7 @@ def parallel_agents_node(state: AgentState) -> AgentState:
     # Run both agents (they're independent, so order doesn't matter)
     state = financial_data_agent(state)
     state = sentiment_analysis_agent(state)
+    state = technical_analysis_agent(state)
     
     logger.info("✅ Orchestrator: Data collection complete")
     
@@ -166,7 +168,7 @@ def create_workflow() -> StateGraph:
             │
             ▼
         parallel_agents
-        (Financial + Sentiment)
+        (Financial + Sentiment + Technical)
             │
             ▼
         report_agent
