@@ -25,6 +25,22 @@ llm = ChatGoogleGenerativeAI(
     temperature=0.5
 )
 
+
+def format_currency(value: Any, currency_code: str = "USD") -> str:
+    """
+    Format a value with currency code to avoid ambiguity in LLM prompts.
+    Examples: 100 -> "USD 100.00", -100 -> "-USD 100.00"
+    """
+    try:
+        if isinstance(value, (int, float)):
+            if value < 0:
+                return f"-{currency_code} {abs(value):,.2f}"
+            return f"{currency_code} {value:,.2f}"
+        return str(value) if value else "N/A"
+    except:
+        return "N/A"
+
+
 def report_generator_agent(state: AgentState) -> AgentState:
     """
     Agent that generates the final report.
@@ -51,6 +67,14 @@ Errors: {', '.join(state.get('errors', ['Unknown error']))}
         state['final_report'] = error_report
         state['recommendation'] = "UNAVAILABLE"
         return state
+    
+    # Get currency code (default to USD)
+    currency = financial_data.get('currency', 'USD')
+    
+    # Format currency fields using the code (e.g. "USD 100")
+    current_price_str = format_currency(financial_data.get('current_price'), currency)
+    avg_fcf_str = format_currency(financial_data.get('avg_fcf_3y'), currency)
+    fcf_str = format_currency(financial_data.get('free_cash_flow'), currency)
     
     
     # Prepare data for LLM
@@ -167,7 +191,7 @@ VERDICT: [BUY/HOLD/SELL]
         # --- FIX FOR STREAMLIT LATEX RENDERING ---
         # Replace $ with HTML entity &dollar; to prevent KaTeX parsing entirely
         # This fixes issues with negative numbers like -$14.50 triggering math mode
-        report_content = report_content.replace("$", "&dollar;")
+        report_content = report_content.replace("$", "\\$")
         
 
         # --- NEW EXTRACTION LOGIC ---
