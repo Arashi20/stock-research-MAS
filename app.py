@@ -1,6 +1,9 @@
 import streamlit as st
 import sys
 import os
+import datetime
+import extra_streamlit_components as stx # For using cookies
+
 
 # Add the current directory to sys.path to ensure imports work correctly
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
@@ -20,6 +23,12 @@ def check_password():
     Returns `True` if the user had the correct password.
     Uses Streamlit's session_state to remember authentication status.
     """
+    # Initialize the Cookie Manager
+    cookie_manager = stx.CookieManager()
+
+    # Try to get the password from cookies first
+    if cookie_manager.get("mas_auth_token") == "valid":
+        return True
     
     # Get password from environment variable (Railway)
     # If you are testing locally, you can set this in your .env file or terminal
@@ -37,6 +46,11 @@ def check_password():
             st.session_state["password_correct"] = True
             # Delete password from session state for security
             del st.session_state["password"]  
+
+            # <--- NEW: Set a cookie that expires in 10 minutes
+            expires = datetime.datetime.now() + datetime.timedelta(minutes=10)
+            cookie_manager.set("mas_auth_token", "valid", expires_at=expires)
+
         else:
             st.session_state["password_correct"] = False
 
