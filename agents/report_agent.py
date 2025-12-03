@@ -1,6 +1,10 @@
 # Agent that generates reports based on analysis.
 # It compiles financial data and sentiment analysis into a coherent report.
 
+
+# Agent that generates reports based on analysis.
+# It compiles financial data and sentiment analysis into a coherent report.
+
 import logging
 import os
 import matplotlib.pyplot as plt
@@ -18,9 +22,9 @@ load_dotenv()
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Initialize Gemini LLM
+# Initialize Gemini LLM with Safety Filters DISABLED
 llm = ChatGoogleGenerativeAI(
-    model="gemini-flash-latest",  # Use the latest Gemini Flash model
+    model="gemini-flash-latest",
     google_api_key=os.getenv('GOOGLE_API_KEY'),
     temperature=0.5,
     safety_settings={
@@ -35,11 +39,8 @@ llm = ChatGoogleGenerativeAI(
 def format_currency(value: Any, currency_code: str = "USD") -> str:
     """
     Format a value with currency code to avoid ambiguity in LLM prompts.
-    Handles int, float, str ("100"), and None.
-    Examples: 100 -> "USD 100.00", -100 -> "-USD 100.00"
     """
     try:
-        # Try to convert string numbers "1000" to float 1000.0
         if isinstance(value, str) and value.replace('.', '', 1).isdigit():
              value = float(value)
 
@@ -48,7 +49,6 @@ def format_currency(value: Any, currency_code: str = "USD") -> str:
                 return f"-{currency_code} {abs(value):,.2f}"
             return f"{currency_code} {value:,.2f}"
         
-        # If it's not a number, return as string (without formatting syntax)
         return str(value) if value else "N/A"
     except:
         return "N/A"
@@ -68,24 +68,31 @@ def report_generator_agent(state: AgentState) -> AgentState:
     sentiment_data = state.get('sentiment_data', {})
     technical_data = state.get('technical_data', {})
     
+    # --- DEBUG LOGGING ---
+    logger.info(f"   Financial Data Success: {financial_data.get('success')}")
+    logger.info(f"   Sentiment Data Present: {bool(sentiment_data)}")
+    logger.info(f"   Technical Data Present: {bool(technical_data)}")
+    
     # Check if we have the necessary data
     if not financial_data or not financial_data.get('success'):
-        logger.error(f"❌ Report Generator: Financial data failed for {ticker}. Skipping report generation.")
+        logger.error(f"❌ Report Generator: Financial data failed/missing for {ticker}. Skipping report.")
+        # If we are here, it means financial data is missing despite logs saying otherwise?
         state['final_report'] = None
         state['recommendation'] = "UNAVAILABLE"
         return state
     
-    # Get currency code (default to USD)
-    currency = financial_data.get('currency', 'USD')
-    
-    # Format currency fields using the code (e.g. "USD 100")
-    current_price_str = format_currency(financial_data.get('current_price'), currency)
-    avg_fcf_str = format_currency(financial_data.get('avg_fcf_3y'), currency)
-    fcf_str = format_currency(financial_data.get('free_cash_flow'), currency)
-    
-    
-    # Prepare data for LLM
-    financial_summary = f"""
+    try:
+        # Get currency code (default to USD)
+        currency = financial_data.get('currency', 'USD')
+        
+        # Format currency fields
+        current_price_str = format_currency(financial_data.get('current_price'), currency)
+        avg_fcf_str = format_currency(financial_data.get('avg_fcf_3y'), currency)
+        fcf_str = format_currency(financial_data.get('free_cash_flow'), currency)
+        
+        
+        # Prepare data for LLM
+        financial_summary = f"""
 Valuation:
 - Current Price: {current_price_str}
 - Market Cap: {format_currency(financial_data.get('market_cap'), currency)}
@@ -115,14 +122,14 @@ Market Data:
 - 52-Week Low: {format_currency(financial_data.get('fifty_two_week_low'), currency)}
 - Analyst Recommendation: {financial_data.get('analyst_recommendation', 'N/A').upper()}
 """
-    # Pylance type errors are fine here: The agents set the data.
-    sentiment_summary = f"""
+
+        sentiment_summary = f"""
 Sentiment Score: {sentiment_data.get('sentiment_score', 0):.2f} (-1 = very negative, +1 = very positive)
 Articles Analyzed: {sentiment_data.get('article_count', 0)}
 Summary: {sentiment_data.get('summary', 'No sentiment data available')}
 """
 
-    technical_summary = f"""
+        technical_summary = f"""
 Trend (Weekly): {technical_data.get('trend', 'N/A')}
 RSI (14-Week): {technical_data.get('rsi', 'N/A'):.2f}
 MACD (Weekly): {technical_data.get('macd', 'N/A'):.2f}
@@ -132,11 +139,11 @@ Stochastic Oscillator (Weekly 14,1,3):
 - %D Line: {technical_data.get('stoch_d', 'N/A'):.2f} (Red Line)
 - Signal: {technical_data.get('stoch_signal', 'N/A')}
 """
-    
+        
 
-    # UPDATED PROMPT - MORE CRITICAL
-    prompt = f"""You are a skeptical Fundamental Investment Analyst.
-    
+        # UPDATED PROMPT - MORE CRITICAL
+        prompt = f"""You are a skeptical Fundamental Investment Analyst.
+        
 COMPANY: {company_name} ({ticker})
 
 FINANCIAL DATA:
@@ -173,15 +180,17 @@ At the very end of your response, on a new line, you MUST print the final recomm
 VERDICT: [BUY/HOLD/SELL]
 """
     
-    try:
+        logger.info("🤖 Report Generator: Sending prompt to LLM...")
+        
         # Generate report using LLM
         response = llm.invoke(prompt)
+        
+        logger.info("🤖 Report Generator: Received response from LLM")
 
-            # Handle different response types (string or list)
+        # Handle different response types (string or list)
         if isinstance(response.content, str):
             report_content = response.content
         elif isinstance(response.content, list):
-            # If it's a list, extracting the text from each block is necessary
             parts = []
             for item in response.content:
                 if isinstance(item, str):
@@ -193,31 +202,30 @@ VERDICT: [BUY/HOLD/SELL]
             report_content = "".join(parts)
         else:
             report_content = str(response.content)
+            
+        # Check for empty report
+        if not report_content or report_content.strip() == "":
+            logger.error("❌ Report Generator Agent: LLM returned empty report (Possible Safety Block)")
+            report_content = f"""# Analysis Blocked
+            
+The AI model refused to generate a report for **{company_name}**. 
+This often happens with Defense/Weapon companies due to safety filters.
+"""
 
         # --- SANITIZATION STEP ---
-        # 1. Remove backslashes preceding dollar signs (e.g., \$ -> $)
         report_content = report_content.replace("\\$", "$")
-        
-        # 2. Strip LaTeX math delimiters wrapping currency/numbers (e.g., $-100$ -> -100 or $-$100$ -> -$100)
-        # Regex explanation: Find $...$ where content is digits/commas/dots/minus/dollar, and keep only the content.
         report_content = re.sub(r'\$(-?\$?[\d,.]+\w*)\$', r'\1', report_content)
-
-        # 3. Final Visual Fix: Replace ASCII '$' with Unicode Fullwidth Dollar Sign (U+FF04)
         report_content = report_content.replace("$", "＄")
         
 
-        # --- NEW EXTRACTION LOGIC ---
-        # Look for "VERDICT: BUY" or "VERDICT: SELL" at the end
+        # --- EXTRACTION LOGIC ---
         match = re.search(r'VERDICT:\s*(BUY|SELL|HOLD)', report_content, re.IGNORECASE)
-
-
 
         if match:
             recommendation = match.group(1).upper()
         else:
-            # Fallback if LLM forgets the format
             logger.warning("⚠️ LLM did not output VERDICT format. Falling back to keyword search.")
-            if "SELL" in report_content.upper()[-500:]: # Only look at the end
+            if "SELL" in report_content.upper()[-500:]:
                 recommendation = "SELL"
             elif "BUY" in report_content.upper()[-500:]:
                 recommendation = "BUY"
@@ -225,14 +233,13 @@ VERDICT: [BUY/HOLD/SELL]
                 recommendation = "HOLD"
         
         logger.info(f"✅ Report Generator Agent: Report created")
-        logger.info(f"   Recommendation: {recommendation}")
         
         state['final_report'] = report_content
         state['recommendation'] = recommendation
         
-    except Exception as e:
-        logger.error(f"❌ Report Generator Agent: Failed to generate report - {e}")
-        state['errors'].append(f"Report generation error: {str(e)}")
+    except BaseException as e:
+        logger.critical(f"❌ Report Generator Agent: CRITICAL FAILURE - {e}", exc_info=True)
+        state['errors'].append(f"Report generation critical error: {str(e)}")
         state['final_report'] = f"# Error\n\nFailed to generate report: {str(e)}"
         state['recommendation'] = "ERROR"
     
