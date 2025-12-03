@@ -1,0 +1,11 @@
+# This configuration forces Railway to use Python 3.11
+# This prevents "Out of Memory" crashes by using pre-built wheels
+[phases.setup]
+nixPkgs = ["python311"]
+
+[phases.install]
+cmds = ["python -m pip install -r requirements.txt"]
+
+[start]
+cmd = "streamlit run app.py"
+
