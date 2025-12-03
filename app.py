@@ -60,18 +60,24 @@ def check_password():
         # You might want to return True here for development, but False is safer
         return False
 
-    def password_entered():
-        """Checks whether a password entered by the user is correct."""
+    # DIRECT CHECK: No callbacks, just check the input value directly
+    entered_password = st.text_input("Please enter the access password:", type="password")
 
-        entered_pw = st.session_state.get("password")
-        
-        if entered_pw == correct_password:
+    if entered_password:
+        if entered_password == correct_password:
             st.session_state["password_correct"] = True
-            # Only delete if it exists
-            if "password" in st.session_state:
-                del st.session_state["password"]
+            
+            # Set the cookie
+            expires = datetime.datetime.now() + datetime.timedelta(minutes=10)
+            cookie_manager.set("mas_auth_token", "valid", expires_at=expires)
+            
+            # Wait for cookie to save, then reload to hide the login form
+            time.sleep(0.5)
+            st.rerun()
         else:
-            st.session_state["password_correct"] = False
+            st.error("😕 Password incorrect")
+        
+    return False
 
     # Display Input
     st.text_input(
