@@ -95,8 +95,7 @@ if check_password():
     # This allows other apps to link here with a pre-filled ticker.
     # Streamlit preserves these parameters even if the password check reruns the app.
     # Default query
-    if "ticker" in st.query_params:
-        default_query = st.query_params["ticker"]
+    default_query = st.query_params.get("ticker", "")
 
     # Main Input
     query = st.text_input(
