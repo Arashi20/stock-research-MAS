@@ -66,9 +66,10 @@ Ticker:"""
         ticker = str(response.content).strip().upper()
         
         # Validate it looks like a ticker (2-5 letters, all caps)
-        if re.match(r'^[A-Z]{2,5}$', ticker):
+        if re.match(r'^[A-Z0-9.]{2,12}$', ticker):
             return ticker
         else:
+            logger.warning(f"Orchestrator: Extracted '{ticker}' but it failed validation.")
             return "UNKNOWN"
             
     except Exception as e:
@@ -83,7 +84,7 @@ def extract_ticker_regex(user_query: str) -> str:
     Used if LLM fails.
     """
     # Try to find ticker pattern
-    ticker_match = re.search(r'\b([A-Z]{2,5})\b', user_query)
+    ticker_match = re.search(r'\b([A-Z]{2,5}(?:\.[A-Z]{2})?)\b', user_query)
     if ticker_match:
         potential_ticker = ticker_match.group(1)
         excluded_words = {'IN', 'AN', 'TO', 'IT', 'IS', 'OR', 'ON', 'AT', 'BY', 'OF'}
