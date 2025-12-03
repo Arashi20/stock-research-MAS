@@ -91,9 +91,17 @@ if check_password():
         st.markdown("---")
         st.info("Built by Arash Mirshahi")
 
+    # Check for 'ticker' in URL parameters
+    # This allows other apps to link here with a pre-filled ticker.
+    # Streamlit preserves these parameters even if the password check reruns the app.
+    # Default query
+    if "ticker" in st.query_params:
+        default_query = st.query_params["ticker"]
+
     # Main Input
     query = st.text_input(
         "Enter a company name or ticker symbol to analyze:",
+        value=default_query,
         placeholder="Should I invest in Nvidia?",
         help="Ask about any public company and the agents will research it for you.",
     )
