@@ -23,6 +23,12 @@ llm = ChatGoogleGenerativeAI(
     model="gemini-flash-latest",  # Use the latest Gemini Flash model
     google_api_key=os.getenv('GOOGLE_API_KEY'),
     temperature=0.5
+    safety_settings={
+        HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT: HarmBlockThreshold.BLOCK_NONE,
+        HarmCategory.HARM_CATEGORY_HARASSMENT: HarmBlockThreshold.BLOCK_NONE,
+        HarmCategory.HARM_CATEGORY_HATE_SPEECH: HarmBlockThreshold.BLOCK_NONE,
+        HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT: HarmBlockThreshold.BLOCK_NONE,
+    }
 )
 
 
