@@ -95,4 +95,3 @@ xxhash==3.6.0
 yfinance==0.2.66
 zstandard==0.25.0
 streamlit
-extra-streamlit-components

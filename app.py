@@ -1,10 +1,6 @@
 import streamlit as st
 import sys
 import os
-import datetime
-import time
-import extra_streamlit_components as stx # For using cookies
-
 
 # Add the current directory to sys.path to ensure imports work correctly
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
@@ -24,73 +20,46 @@ def check_password():
     Returns `True` if the user had the correct password.
     Uses Streamlit's session_state to remember authentication status.
     """
-
-    # IMPORTANT: Adding a unique key prevents component remounting issues
-    cookie_manager = stx.CookieManager(key="mas_auth_manager")
-
-    # 0. Logout handling first
-    if st.session_state.get("logout_clicked", False):
-        cookie_manager.delete("mas_auth_token")
-        st.session_state["logout_clicked"] = False
-        st.session_state["password_correct"] = False
-        # Wait a moment for the cookie to be deleted on the frontend
-        time.sleep(0.5) 
-        return False
-
-    # 1. Check if a valid cookie already exists (Returning user)
-    if cookie_manager.get("mas_auth_token") == "valid":
-        return True
-
-    # 2. Check Session State (User just logged in this session)
-    if st.session_state.get("password_correct", False):
-        # Set cookie to expire in 7 days (avoids timezone issues with short durations)
-        expires = datetime.datetime.now() + datetime.timedelta(minutes=20)
-        cookie_manager.set("mas_auth_token", "valid", expires_at=expires)
-        
-        # IMPORTANT: Wait ensures the frontend saves the cookie before the app continues
-        time.sleep(0.5) 
-        return True
-
-    # 3. If neither, show the Login Form
+    
+    # Get password from environment variable
     correct_password = os.environ.get("APP_PASSWORD")
     
-    # Safety check: If no password is set in the environment, warn the admin
     if not correct_password:
-        st.warning("⚠️ No APP_PASSWORD set in environment variables. Please configure it in Railway/Locally.")
-        # You might want to return True here for development, but False is safer
+        st.warning("⚠️ No APP_PASSWORD set in environment variables.")
         return False
 
-    # DIRECT CHECK: No callbacks, just check the input value directly
-    entered_password = st.text_input("Please enter the access password:", type="password")
-
-    if entered_password:
-        if entered_password == correct_password:
+    def password_entered():
+        """Checks whether a password entered by the user is correct."""
+        if st.session_state["password"] == correct_password:
             st.session_state["password_correct"] = True
-            
-            # Set the cookie
-            expires = datetime.datetime.now() + datetime.timedelta(minutes=10)
-            cookie_manager.set("mas_auth_token", "valid", expires_at=expires)
-            
-            # Wait for cookie to save, then reload to hide the login form
-            time.sleep(0.5)
-            st.rerun()
+            # Delete password from session state for security
+            del st.session_state["password"]  
         else:
-            st.error("😕 Password incorrect")
-        
-    return False
+            st.session_state["password_correct"] = False
 
-    # Display Input
-    st.text_input(
-        "Please enter the access password:", 
-        type="password", 
-        on_change=password_entered, 
-        key="password"
-    )
-
-    if "password_correct" in st.session_state and not st.session_state["password_correct"]:
+    # Check current state
+    if "password_correct" not in st.session_state:
+        # First run, show input for password.
+        st.text_input(
+            "Please enter the access password:", 
+            type="password", 
+            on_change=password_entered, 
+            key="password"
+        )
+        return False
+    elif not st.session_state["password_correct"]:
+        # Password not correct, show input + error.
+        st.text_input(
+            "Please enter the access password:", 
+            type="password", 
+            on_change=password_entered, 
+            key="password"
+        )
         st.error("😕 Password incorrect")
-        
-    return False
+        return False
+    else:
+        # Password correct.
+        return True
 
 # --- Main App Execution ---
 if check_password():
@@ -113,16 +82,14 @@ if check_password():
         
         # Logout button simply resets the session state
         if st.button("Logout"):
-            st.session_state["logout_clicked"] = True
+            st.session_state["password_correct"] = False
             st.rerun()
             
         st.markdown("---")
         st.info("Built by Arash Mirshahi")
 
     # Check for 'ticker' in URL parameters
-    # This allows other apps to link here with a pre-filled ticker.
-    # Streamlit preserves these parameters even if the password check reruns the app.
-    # Default query
+    # This allows other apps to link here like: https://your-app.com/?ticker=NVDA
     default_query = st.query_params.get("ticker", "")
 
     # Main Input
