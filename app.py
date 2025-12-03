@@ -2,6 +2,7 @@ import streamlit as st
 import sys
 import os
 import datetime
+import time
 import extra_streamlit_components as stx # For using cookies
 
 
@@ -27,14 +28,27 @@ def check_password():
     # IMPORTANT: Adding a unique key prevents component remounting issues
     cookie_manager = stx.CookieManager(key="mas_auth_manager")
 
+    # 0. Logout handling first
+    if st.session_state.get("logout_clicked", False):
+        cookie_manager.delete("mas_auth_token")
+        st.session_state["logout_clicked"] = False
+        st.session_state["password_correct"] = False
+        # Wait a moment for the cookie to be deleted on the frontend
+        time.sleep(0.5) 
+        return False
+
     # 1. Check if a valid cookie already exists (Returning user)
     if cookie_manager.get("mas_auth_token") == "valid":
         return True
 
     # 2. Check Session State (User just logged in this session)
     if st.session_state.get("password_correct", False):
-        expires = datetime.datetime.now() + datetime.timedelta(minutes=10)
+        # Set cookie to expire in 7 days (avoids timezone issues with short durations)
+        expires = datetime.datetime.now() + datetime.timedelta(minutes=20)
         cookie_manager.set("mas_auth_token", "valid", expires_at=expires)
+        
+        # IMPORTANT: Wait ensures the frontend saves the cookie before the app continues
+        time.sleep(0.5) 
         return True
 
     # 3. If neither, show the Login Form
@@ -89,7 +103,7 @@ if check_password():
         
         # Logout button simply resets the session state
         if st.button("Logout"):
-            st.session_state["password_correct"] = False
+            st.session_state["logout_clicked"] = True
             st.rerun()
             
         st.markdown("---")
