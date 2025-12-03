@@ -10,6 +10,10 @@ def fetch_stock_data(ticker: str) -> Dict[str, Any]:
         info = stock.info
         hist = stock.history(period="1y")
 
+        # --- NEW: Check for Empty History (Delisted/Invalid) ---
+        if hist.empty:
+            raise Exception(f"ERROR:yfinance:${ticker}: possibly delisted; no price data found (period=1y)")
+
         # --- NEW: Calculate Historical Metrics (3 Years) ---
         fcf_metrics = {'avg_fcf_3y': 'N/A', 'fcf_trend': 'N/A'}
         share_metrics = {'share_dilution_3y': 'N/A', 'shares_outstanding_trend': 'N/A'}

@@ -10,7 +10,7 @@ from io import BytesIO
 import base64
 from typing import Dict, Any
 from agents.state import AgentState
-from langchain_google_genai import ChatGoogleGenerativeAI
+from langchain_google_genai import ChatGoogleGenerativeAI, HarmBlockThreshold, HarmCategory
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -70,14 +70,8 @@ def report_generator_agent(state: AgentState) -> AgentState:
     
     # Check if we have the necessary data
     if not financial_data or not financial_data.get('success'):
-        error_report = f"""
-# ❌ Analysis Failed for {ticker}
-
-Unable to retrieve financial data. Please check if the ticker symbol is correct.
-
-Errors: {', '.join(state.get('errors', ['Unknown error']))}
-"""
-        state['final_report'] = error_report
+        logger.error(f"❌ Report Generator: Financial data failed for {ticker}. Skipping report generation.")
+        state['final_report'] = None
         state['recommendation'] = "UNAVAILABLE"
         return state
     

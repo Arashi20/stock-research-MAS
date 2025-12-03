@@ -18,10 +18,7 @@ st.set_page_config(
 def check_password():
     """
     Returns `True` if the user had the correct password.
-    Uses Streamlit's session_state to remember authentication status.
     """
-    
-    # Get password from environment variable
     correct_password = os.environ.get("APP_PASSWORD")
     
     if not correct_password:
@@ -29,17 +26,13 @@ def check_password():
         return False
 
     def password_entered():
-        """Checks whether a password entered by the user is correct."""
         if st.session_state["password"] == correct_password:
             st.session_state["password_correct"] = True
-            # Delete password from session state for security
             del st.session_state["password"]  
         else:
             st.session_state["password_correct"] = False
 
-    # Check current state
     if "password_correct" not in st.session_state:
-        # First run, show input for password.
         st.text_input(
             "Please enter the access password:", 
             type="password", 
@@ -48,7 +41,6 @@ def check_password():
         )
         return False
     elif not st.session_state["password_correct"]:
-        # Password not correct, show input + error.
         st.text_input(
             "Please enter the access password:", 
             type="password", 
@@ -58,18 +50,13 @@ def check_password():
         st.error("😕 Password incorrect")
         return False
     else:
-        # Password correct.
         return True
 
 # --- Main App Execution ---
 if check_password():
-    # Everything below this line is protected
-    
-    # Header
     st.title("Stock Research Multi-Agent System")
     st.markdown("---")
 
-    # Sidebar with info
     with st.sidebar:
         st.header("About")
         st.markdown("""
@@ -80,7 +67,6 @@ if check_password():
         """)
         st.markdown("---")
         
-        # Logout button simply resets the session state
         if st.button("Logout"):
             st.session_state["password_correct"] = False
             st.rerun()
@@ -88,11 +74,8 @@ if check_password():
         st.markdown("---")
         st.info("Built by Arash Mirshahi")
 
-    # Check for 'ticker' in URL parameters
-    # This allows other apps to link here like: https://your-app.com/?ticker=NVDA
     default_query = st.query_params.get("ticker", "")
 
-    # Main Input
     query = st.text_input(
         "Enter a company name or ticker symbol to analyze:",
         value=default_query,
@@ -106,20 +89,21 @@ if check_password():
         else:
             with st.spinner("Agents are researching... this may take a minute..."):
                 try:
-                    # Run the actual analysis
                     result = run_stock_analysis(query)
                     
+                    # Handle case where ticker wasn't found
                     if result.get('errors') and result['ticker'] == 'UNKNOWN':
                         st.error("Analysis failed. Please try a specific company name or ticker.")
                         with st.expander("See error details"):
                             st.write(result['errors'])
-
+                    
                     # Handle case where ticker was found but analysis failed (e.g., Delisted)
                     elif not result.get('report'):
                          st.error(f"Could not generate report for {result.get('ticker')}.")
                          st.warning("This usually happens if the stock is delisted or data is unavailable.")
                          if result.get('errors'):
                              with st.expander("See error details"):
+                                 # This will show the "ERROR:yfinance..." message you wanted
                                  st.write(result['errors'])
 
                     else:
@@ -130,9 +114,11 @@ if check_password():
                             st.metric("Company", f"{result['company_name']} ({result['ticker']})")
                         
                         with col2:
-                            st.metric("Recommendation", result['recommendation'])
+                            st.metric("Recommendation", result.get('recommendation', 'N/A'))
                             
                         with col3:
+                            # --- FIXED CRASH HERE ---
+                            # Check if sentiment is a number before formatting
                             sentiment = result.get('sentiment_score')
                             
                             if isinstance(sentiment, (int, float)):
@@ -141,10 +127,8 @@ if check_password():
                             else:
                                 st.metric("Sentiment Score", "N/A")
 
-                        
                         st.markdown(result['report'])
                         
-                        # Download button
                         st.download_button(
                             label="💾 Download Report",
                             data=result['report'],
