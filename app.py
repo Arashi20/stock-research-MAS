@@ -23,15 +23,21 @@ def check_password():
     Returns `True` if the user had the correct password.
     Uses Streamlit's session_state to remember authentication status.
     """
-    # Initialize the Cookie Manager
-    cookie_manager = stx.CookieManager()
 
-    # Try to get the password from cookies first
+    # IMPORTANT: Adding a unique key prevents component remounting issues
+    cookie_manager = stx.CookieManager(key="mas_auth_manager")
+
+    # 1. Check if a valid cookie already exists (Returning user)
     if cookie_manager.get("mas_auth_token") == "valid":
         return True
-    
-    # Get password from environment variable (Railway)
-    # If you are testing locally, you can set this in your .env file or terminal
+
+    # 2. Check Session State (User just logged in this session)
+    if st.session_state.get("password_correct", False):
+        expires = datetime.datetime.now() + datetime.timedelta(minutes=10)
+        cookie_manager.set("mas_auth_token", "valid", expires_at=expires)
+        return True
+
+    # 3. If neither, show the Login Form
     correct_password = os.environ.get("APP_PASSWORD")
     
     # Safety check: If no password is set in the environment, warn the admin
@@ -46,37 +52,21 @@ def check_password():
             st.session_state["password_correct"] = True
             # Delete password from session state for security
             del st.session_state["password"]  
-
-            # <--- NEW: Set a cookie that expires in 10 minutes
-            expires = datetime.datetime.now() + datetime.timedelta(minutes=10)
-            cookie_manager.set("mas_auth_token", "valid", expires_at=expires)
-
         else:
             st.session_state["password_correct"] = False
 
-    # Check current state
-    if "password_correct" not in st.session_state:
-        # First run, show input for password.
-        st.text_input(
-            "Please enter the access password:", 
-            type="password", 
-            on_change=password_entered, 
-            key="password"
-        )
-        return False
-    elif not st.session_state["password_correct"]:
-        # Password not correct, show input + error.
-        st.text_input(
-            "Please enter the access password:", 
-            type="password", 
-            on_change=password_entered, 
-            key="password"
-        )
+    # Display Input
+    st.text_input(
+        "Please enter the access password:", 
+        type="password", 
+        on_change=password_entered, 
+        key="password"
+    )
+
+    if "password_correct" in st.session_state and not st.session_state["password_correct"]:
         st.error("😕 Password incorrect")
-        return False
-    else:
-        # Password correct.
-        return True
+        
+    return False
 
 # --- Main App Execution ---
 if check_password():
