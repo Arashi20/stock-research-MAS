@@ -113,6 +113,15 @@ if check_password():
                         st.error("Analysis failed. Please try a specific company name or ticker.")
                         with st.expander("See error details"):
                             st.write(result['errors'])
+
+                    # Handle case where ticker was found but analysis failed (e.g., Delisted)
+                    elif not result.get('report'):
+                         st.error(f"Could not generate report for {result.get('ticker')}.")
+                         st.warning("This usually happens if the stock is delisted or data is unavailable.")
+                         if result.get('errors'):
+                             with st.expander("See error details"):
+                                 st.write(result['errors'])
+
                     else:
                         # Success Display
                         col1, col2, col3 = st.columns(3)
@@ -124,9 +133,13 @@ if check_password():
                             st.metric("Recommendation", result['recommendation'])
                             
                         with col3:
-                            sentiment = result.get('sentiment_score', 0)
-                            emoji = "😊" if sentiment > 0.3 else "😐" if sentiment > -0.3 else "😟"
-                            st.metric("Sentiment Score", f"{sentiment:.2f} {emoji}")
+                            sentiment = result.get('sentiment_score')
+                            
+                            if isinstance(sentiment, (int, float)):
+                                emoji = "😊" if sentiment > 0.3 else "😐" if sentiment > -0.3 else "😟"
+                                st.metric("Sentiment Score", f"{sentiment:.2f} {emoji}")
+                            else:
+                                st.metric("Sentiment Score", "N/A")
 
                         
                         st.markdown(result['report'])
