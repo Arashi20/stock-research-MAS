@@ -80,7 +80,7 @@ if check_password():
         "Enter a company name or ticker symbol to analyze:",
         value=default_query,
         placeholder="Should I invest in Nvidia?",
-        help="Ask about any public company and the agents will research it for you.",
+        help="Ask about any public company and the agents will research it for you. WARNING: ETFs are (not yet) supported!",
     )
 
     if st.button("Run Analysis", type="primary"):
