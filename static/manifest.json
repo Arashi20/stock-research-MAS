@@ -1,7 +1,7 @@
 {
   "name": "Stock Research Multi-Agent System",
   "short_name": "Stock Research",
-  "start_url": "https://stock-research-production.up.railway.app/",
+  "start_url": "/",
   "display": "standalone",
   "background_color": "#0E1117",
   "theme_color": "#FF4B4B",
