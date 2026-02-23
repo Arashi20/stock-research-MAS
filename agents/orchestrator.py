@@ -63,7 +63,29 @@ Ticker:"""
 
     try:
         response = query_parser_llm.invoke(prompt)
-        ticker = str(response.content).strip().upper()
+        
+        # Handle different response formats from Gemini API
+        if hasattr(response, 'content'):
+            content = response.content
+            # If content is a list of parts, extract text from first part
+            if isinstance(content, list) and len(content) > 0:
+                first_part = content[0]
+                if isinstance(first_part, dict) and 'TEXT' in first_part:
+                    ticker = first_part['TEXT'].strip().upper()
+                elif hasattr(first_part, 'text'):
+                    ticker = first_part.text.strip().upper()
+                else:
+                    ticker = str(first_part).strip().upper()
+            # If content is a string, use it directly
+            elif isinstance(content, str):
+                ticker = content.strip().upper()
+            # If content has a text attribute
+            elif hasattr(content, 'text'):
+                ticker = content.text.strip().upper()
+            else:
+                ticker = str(content).strip().upper()
+        else:
+            ticker = str(response).strip().upper()
         
         # Validate it looks like a ticker (2-5 letters, all caps)
         if re.match(r'^[A-Z0-9.]{2,12}$', ticker):
