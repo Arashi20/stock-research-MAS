@@ -14,6 +14,19 @@ st.set_page_config(
     layout="wide"
 )
 
+# Inject PWA manifest link into HTML head
+st.markdown(
+    """
+    <link rel="manifest" href="/static/manifest.json">
+    <meta name="theme-color" content="#FF4B4B">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Stock Research">
+    <link rel="apple-touch-icon" href="/static/icon-192x192.png">
+    """,
+    unsafe_allow_html=True
+)
+
 # --- Authentication Logic ---
 def check_password():
     """
